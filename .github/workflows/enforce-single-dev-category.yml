@@ -6,7 +6,6 @@ on:
 
 permissions:
   issues: write
-  contents: read
 
 jobs:
   enforce:
@@ -15,8 +14,6 @@ jobs:
       - uses: actions/github-script@v7
         with:
           script: |
-            const core = require('@actions/core');
-
             const categoryLabels = [
               "bug",
               "feature",
@@ -28,22 +25,23 @@ jobs:
             ];
 
             const issue = context.payload.issue;
-            const labels = issue.labels.map(label =>
-              typeof label === "string" ? label : label.name
-            );
+
+            const labels = issue.labels.map(label => label.name);
 
             const matched = labels.filter(label => categoryLabels.includes(label));
+
+            console.log("Labels:", labels);
+            console.log("Matched:", matched);
 
             if (matched.length === 0) {
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issue.number,
-                body:
-                  "Esta issue precisa ter exatamente 1 label de categoria de desenvolvimento: `bug`, `feature`, `refactor`, `chore`, `docs`, `test` ou `perf`."
+                body: "Precisa ter exatamente 1 label de categoria: bug, feature, refactor, chore, docs, test ou perf."
               });
 
-              core.setFailed("Nenhuma label de categoria encontrada.");
+              core.setFailed("Nenhuma label válida.");
               return;
             }
 
@@ -52,12 +50,11 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issue.number,
-                body:
-                  `Esta issue possui mais de uma label de categoria: ${matched.join(", ")}. Mantenha apenas uma.`
+                body: `Mais de uma label encontrada: ${matched.join(", ")}`
               });
 
-              core.setFailed("Mais de uma label de categoria encontrada.");
+              core.setFailed("Mais de uma label.");
               return;
             }
 
-            console.log(`Label válida encontrada: ${matched[0]}`);
+            console.log(`OK: ${matched[0]}`);
